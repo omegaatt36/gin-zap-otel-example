@@ -20,7 +20,7 @@ func run(ctx context.Context) {
 	ctx, span := tracing.Start(ctx, "run")
 	defer span.End()
 
-	logging.Debug("running", zap.String("run", "running"))
+	logging.Debug("running")
 	logging.FromContext(ctx).Info("span test 1 with trace")
 	logging.FromContext(ctx).Info("span test 1 repeats trace and span id")
 }

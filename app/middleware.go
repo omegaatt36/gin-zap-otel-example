@@ -34,8 +34,6 @@ func GinLogger(logger *zap.Logger, tracer trace.Tracer, stack bool) gin.HandlerF
 		ctxWithLogger := logging.NewContext(*requestCtx, logging.Get())
 		c.Request = c.Request.WithContext(ctxWithLogger)
 
-		logger := zap.NewExample()
-
 		defer func() {
 			if err := recover(); err != nil {
 				var brokenPipe bool

@@ -2,7 +2,6 @@ package tracing
 
 import (
 	"context"
-	"log"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -27,7 +26,6 @@ func NewContext(parent context.Context, t trace.Tracer) context.Context {
 func FromContext(ctx context.Context) trace.Tracer {
 	t, ok := ctx.Value(ctxKey{}).(trace.Tracer)
 	if !ok {
-		log.Println("failed to get tracer from context, using noop tracer")
 		return tracer
 	}
 

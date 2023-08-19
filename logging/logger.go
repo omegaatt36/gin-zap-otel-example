@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -17,9 +18,25 @@ func NewContext(parent context.Context, z *zap.Logger) context.Context {
 	return context.WithValue(parent, ctxKey{}, z)
 }
 
+// FromContext returns the logger instance from the context.
 func FromContext(ctx context.Context) *zap.Logger {
-	c, _ := ctx.Value(ctxKey{}).(*zap.Logger)
-	return c
+	c, ok := ctx.Value(ctxKey{}).(*zap.Logger)
+	if !ok {
+		return logger
+	}
+
+	logger := *c
+
+	// decuple with package tracing.
+	if traceID := trace.SpanFromContext(ctx).SpanContext().TraceID(); traceID.IsValid() {
+		logger = *logger.With(zap.String("trace-id", traceID.String()))
+	}
+
+	if spanID := trace.SpanFromContext(ctx).SpanContext().SpanID(); spanID.IsValid() {
+		logger = *logger.With(zap.String("span-id", spanID.String()))
+	}
+
+	return &logger
 }
 
 var logger *zap.Logger

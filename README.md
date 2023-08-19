@@ -5,6 +5,7 @@ gin-zap-otel
 
 ### Jaeger
 
+```shell
 docker run -d --name jaeger \
   -e COLLECTOR_ZIPKIN_HTTP_PORT=9411 \
   -p 5775:5775/udp \
@@ -15,6 +16,7 @@ docker run -d --name jaeger \
   -p 14268:14268 \
   -p 9411:9411 \
   jaegertracing/all-in-one:1.6
+```
 
 # Quick Start
 

@@ -6,7 +6,7 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -41,11 +41,11 @@ func Get() trace.Tracer {
 }
 
 // Init initializes the OpenTelemetry tracing with span exporter
-func Init(exporter sdktrace.SpanExporter, tracerName string) (func(context.Context) error, error) {
-	bsp := sdktrace.NewBatchSpanProcessor(exporter)
-	tracerProvider := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.AlwaysSample()),
-		sdktrace.WithSpanProcessor(bsp),
+func Init(exporter tracesdk.SpanExporter, tracerName string) (func(context.Context) error, error) {
+	bsp := tracesdk.NewBatchSpanProcessor(exporter)
+	tracerProvider := tracesdk.NewTracerProvider(
+		tracesdk.WithSampler(tracesdk.AlwaysSample()),
+		tracesdk.WithSpanProcessor(bsp),
 	)
 	defer tracerProvider.ForceFlush(context.Background())
 

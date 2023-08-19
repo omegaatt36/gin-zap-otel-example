@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"gin-zap-otel/app"
 	"gin-zap-otel/logging"
@@ -75,6 +76,19 @@ func main() {
 	router.GET("/error", func(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "internal server error",
+		})
+	})
+
+	router.GET("/routine", func(c *gin.Context) {
+		tracing.AsyncFn(c.Request.Context(), "routine", func(ctx context.Context) {
+			time.Sleep(time.Second * 5)
+			logging.FromContext(ctx).Info("after 5 seconds")
+		})
+
+		time.Sleep(time.Second * 2)
+
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Hello, World!",
 		})
 	})
 

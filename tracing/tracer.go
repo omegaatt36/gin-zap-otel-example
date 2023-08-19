@@ -4,14 +4,13 @@ import (
 	"context"
 	"log"
 
-	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/propagation"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 )
 
+// InfluenceTraceIDHeader is the header name for the trace id.
 const InfluenceTraceIDHeader = "X-Influence-Trace-ID"
 
 // ctxKey is the type of value for the context key.
@@ -36,28 +35,24 @@ func FromContext(ctx context.Context) trace.Tracer {
 // tracer is the global tracer used by the app.
 var tracer trace.Tracer
 
+// Get returns the tracer instance.
 func Get() trace.Tracer {
 	return tracer
 }
 
 // Init initializes the OpenTelemetry tracing with span exporter
-func Init() (func(context.Context) error, error) {
-	exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to initialize stdouttrace exporter")
-	}
-
+func Init(exporter sdktrace.SpanExporter, tracerName string) (func(context.Context) error, error) {
 	bsp := sdktrace.NewBatchSpanProcessor(exporter)
 	tracerProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithSpanProcessor(bsp),
 	)
 	defer tracerProvider.ForceFlush(context.Background())
-	otel.SetTracerProvider(tracerProvider)
 
+	otel.SetTracerProvider(tracerProvider)
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 
-	tracer = tracerProvider.Tracer("kryptogo.com/trace")
+	tracer = tracerProvider.Tracer(tracerName)
 
 	return tracerProvider.Shutdown, nil
 }
@@ -72,13 +67,8 @@ func Start(ctx context.Context, spanName string) (context.Context, trace.Span) {
 	return trace.NewNoopTracerProvider().Tracer("noop").Start(ctx, spanName)
 }
 
-// // Middleware returns a gin middleware that traces requests.
-// func Middleware() gin.HandlerFunc {
-// 	return otelgin.Middleware("kryptogo.com/trace", otelgin.WithTracerProvider(otel.GetTracerProvider()))
-// }
-
-// GetTraceSpanID returns the trace span id from the context.
-func GetTraceSpanID(ctx context.Context) (string, string) {
+// GetTraceIDAndSpanID returns the trace id and span id from the context.
+func GetTraceIDAndSpanID(ctx context.Context) (string, string) {
 	spanContext := trace.SpanContextFromContext(ctx)
 	if spanContext.IsValid() {
 		return spanContext.TraceID().String(), spanContext.SpanID().String()
@@ -87,8 +77,9 @@ func GetTraceSpanID(ctx context.Context) (string, string) {
 	return "", ""
 }
 
-// AsyncOp is a helper function to run an operation in a new goroutine with the same trace context. This is useful for detaching cancellation from the context but preserve the trace context.
-func AsyncOp(ctx context.Context, spanName string, op func(ctx context.Context)) {
+// AsyncFn starts a new span with the given name and calls the given function in a new goroutine.
+// If no tracer is set, a noop tracer is used.
+func AsyncFn(ctx context.Context, spanName string, fn func(ctx context.Context)) {
 	t := FromContext(ctx)
 	if t != nil {
 		go func() {
@@ -96,9 +87,9 @@ func AsyncOp(ctx context.Context, spanName string, op func(ctx context.Context))
 			detachedCtx := trace.ContextWithSpanContext(context.Background(), spanContext)
 			detachedCtx, span := t.Start(detachedCtx, spanName)
 			defer span.End()
-			op(detachedCtx)
+			fn(detachedCtx)
 		}()
 	} else {
-		go op(context.Background())
+		go fn(ctx)
 	}
 }

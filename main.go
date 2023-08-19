@@ -9,6 +9,8 @@ import (
 	"gin-zap-otel/tracing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.uber.org/zap"
 )
 
@@ -16,7 +18,7 @@ func run(ctx context.Context) {
 	ctx, span := tracing.Start(ctx, "run")
 	defer span.End()
 
-	logging.Debug("run~~~~~~~~", zap.String("run", "running"))
+	logging.Debug("running", zap.String("run", "running"))
 	logging.FromContext(ctx).Info("span test 1 with trace")
 	logging.FromContext(ctx).Info("span test 1 repeats trace and span id")
 }
@@ -37,13 +39,23 @@ func run3(ctx context.Context) {
 }
 
 func main() {
-	router := gin.New()
+	logging.Init(logging.Config{
+		Environment: logging.EnvDevelopment,
+		Level:       zap.DebugLevel,
+	})
 
-	shutdownFn, err := tracing.Init()
+	exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
+	if err != nil {
+		panic(errors.Wrap(err, "failed to initialize stdouttrace exporter"))
+	}
+
+	shutdownFn, err := tracing.Init(exporter, "gin-zap-otel")
 	if err != nil {
 		panic(err)
 	}
 	defer shutdownFn(context.Background())
+
+	router := gin.New()
 
 	router.Use(app.GinLogger(logging.Get(), tracing.Get(), false))
 

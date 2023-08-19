@@ -12,56 +12,35 @@ import (
 )
 
 const (
-	// SeverityDefault is a severity of type Default.
-	SeverityDefault severity = "DEFAULT"
-	// SeverityDebug is a severity of type Debug.
-	SeverityDebug severity = "DEBUG"
-	// SeverityInfo is a severity of type Info.
-	SeverityInfo severity = "INFO"
-	// SeverityNotice is a severity of type Notice.
-	SeverityNotice severity = "NOTICE"
-	// SeverityWarning is a severity of type Warning.
-	SeverityWarning severity = "WARNING"
-	// SeverityError is a severity of type Error.
-	SeverityError severity = "ERROR"
-	// SeverityCritical is a severity of type Critical.
-	SeverityCritical severity = "CRITICAL"
-	// SeverityAlert is a severity of type Alert.
-	SeverityAlert severity = "ALERT"
-	// SeverityEmergency is a severity of type Emergency.
-	SeverityEmergency severity = "EMERGENCY"
+	// EnvDevelopment is a Env of type Development.
+	EnvDevelopment Env = "development"
+	// EnvProduction is a Env of type Production.
+	EnvProduction Env = "production"
 )
 
-var ErrInvalidseverity = errors.New("not a valid severity")
+var ErrInvalidEnv = errors.New("not a valid Env")
 
 // String implements the Stringer interface.
-func (x severity) String() string {
+func (x Env) String() string {
 	return string(x)
 }
 
 // IsValid provides a quick way to determine if the typed value is
 // part of the allowed enumerated values
-func (x severity) IsValid() bool {
-	_, err := Parseseverity(string(x))
+func (x Env) IsValid() bool {
+	_, err := ParseEnv(string(x))
 	return err == nil
 }
 
-var _severityValue = map[string]severity{
-	"DEFAULT":   SeverityDefault,
-	"DEBUG":     SeverityDebug,
-	"INFO":      SeverityInfo,
-	"NOTICE":    SeverityNotice,
-	"WARNING":   SeverityWarning,
-	"ERROR":     SeverityError,
-	"CRITICAL":  SeverityCritical,
-	"ALERT":     SeverityAlert,
-	"EMERGENCY": SeverityEmergency,
+var _EnvValue = map[string]Env{
+	"development": EnvDevelopment,
+	"production":  EnvProduction,
 }
 
-// Parseseverity attempts to convert a string to a severity.
-func Parseseverity(name string) (severity, error) {
-	if x, ok := _severityValue[name]; ok {
+// ParseEnv attempts to convert a string to a Env.
+func ParseEnv(name string) (Env, error) {
+	if x, ok := _EnvValue[name]; ok {
 		return x, nil
 	}
-	return severity(""), fmt.Errorf("%s is %w", name, ErrInvalidseverity)
+	return Env(""), fmt.Errorf("%s is %w", name, ErrInvalidEnv)
 }

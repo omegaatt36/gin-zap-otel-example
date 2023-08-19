@@ -22,19 +22,6 @@ func FromContext(ctx context.Context) *zap.Logger {
 	return c
 }
 
-// ENUM(
-// Default = DEFAULT
-// Debug = DEBUG
-// Info = INFO
-// Notice = NOTICE
-// Warning = WARNING
-// Error = ERROR
-// Critical = CRITICAL
-// Alert = ALERT
-// Emergency = EMERGENCY
-// )
-type severity string
-
 var logger *zap.Logger
 
 // Get returns the logger instance.
@@ -42,16 +29,34 @@ func Get() *zap.Logger {
 	return logger
 }
 
-func init() {
+// ENUM(
+// Development = development
+// Production = production
+// )
+type Env string
+
+type Config struct {
+	Environment Env
+	Level       zapcore.Level
+}
+
+// Init initializes the logger.
+func Init(cfg Config) {
+	level := zapcore.DebugLevel
 	encoderConfig := zap.NewDevelopmentEncoderConfig()
 	encoder := zapcore.NewConsoleEncoder(encoderConfig)
-	// if !config.IsLocal() {
-	// encoderConfig = zap.NewProductionEncoderConfig()
-	// encoder = zapcore.NewJSONEncoder(encoderConfig)
-	// }
+	if cfg.Environment == EnvProduction {
+		level = zapcore.InfoLevel
+		encoderConfig = zap.NewProductionEncoderConfig()
+		encoder = zapcore.NewJSONEncoder(encoderConfig)
+	}
+
+	if cfg.Level != level {
+		level = cfg.Level
+	}
 
 	core := zapcore.NewTee(
-		zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), zapcore.DebugLevel),
+		zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), level),
 	)
 
 	logger = zap.New(core, zap.AddCaller())

@@ -62,7 +62,7 @@ func main() {
 
 	router := gin.New()
 
-	router.Use(app.GinLogger(logging.Get(), tracing.Get(), false))
+	router.Use(app.GinLogger(logging.Get(), tracing.Get(), true))
 
 	router.GET("/", func(c *gin.Context) {
 		run(c.Request.Context())

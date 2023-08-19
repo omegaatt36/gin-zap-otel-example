@@ -10,9 +10,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
-	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.uber.org/zap"
 )
+
+const serviceName = "gin-zap-otel"
 
 func run(ctx context.Context) {
 	ctx, span := tracing.Start(ctx, "run")
@@ -44,12 +46,15 @@ func main() {
 		Level:       zap.DebugLevel,
 	})
 
-	exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
+	// exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
+	exporter, err := jaeger.New(jaeger.WithCollectorEndpoint(
+		jaeger.WithEndpoint("http://localhost:14268/api/traces"),
+	))
 	if err != nil {
 		panic(errors.Wrap(err, "failed to initialize stdouttrace exporter"))
 	}
 
-	shutdownFn, err := tracing.Init(exporter, "gin-zap-otel")
+	shutdownFn, err := tracing.Init(exporter, serviceName)
 	if err != nil {
 		panic(err)
 	}

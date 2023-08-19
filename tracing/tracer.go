@@ -6,7 +6,9 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -46,6 +48,12 @@ func Init(exporter tracesdk.SpanExporter, tracerName string) (func(context.Conte
 	tracerProvider := tracesdk.NewTracerProvider(
 		tracesdk.WithSampler(tracesdk.AlwaysSample()),
 		tracesdk.WithSpanProcessor(bsp),
+		tracesdk.WithResource(
+			resource.NewWithAttributes(
+				semconv.SchemaURL,
+				semconv.ServiceName(tracerName),
+			),
+		),
 	)
 	defer tracerProvider.ForceFlush(context.Background())
 

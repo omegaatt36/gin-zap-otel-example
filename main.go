@@ -96,5 +96,34 @@ func main() {
 		panic("a")
 	})
 
+	router.GET("/self", func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), time.Second*30)
+		defer cancel()
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost:8000/", nil)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": "create request failed",
+			})
+			return
+		}
+
+		tracing.HTTPInject(ctx, req)
+
+		client := &http.Client{}
+		if _, err := client.Do(req); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": "send request failed",
+			})
+			return
+		}
+
+		time.Sleep(time.Second * 2)
+
+		c.JSON(http.StatusOK, gin.H{
+			"message": "OK!",
+		})
+	})
+
 	router.Run(":8000")
 }

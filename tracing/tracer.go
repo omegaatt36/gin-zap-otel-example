@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"context"
+	"net/http"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -10,9 +11,6 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	"go.opentelemetry.io/otel/trace"
 )
-
-// InfluenceTraceIDHeader is the header name for the trace id.
-const InfluenceTraceIDHeader = "X-Influence-Trace-ID"
 
 // ctxKey is the type of value for the context key.
 type ctxKey struct{}
@@ -30,6 +28,18 @@ func FromContext(ctx context.Context) trace.Tracer {
 	}
 
 	return t
+}
+
+// HTTPInject injects the trace id and span id into the given http request.
+func HTTPInject(ctx context.Context, req *http.Request) {
+	propagator := otel.GetTextMapPropagator()
+	propagator.Inject(ctx, propagation.HeaderCarrier(req.Header))
+}
+
+// HTTPExtract extracts the trace id and span id from the given http request.
+func HTTPExtract(ctx context.Context, req *http.Request) context.Context {
+	propagator := otel.GetTextMapPropagator()
+	return propagator.Extract(ctx, propagation.HeaderCarrier(req.Header))
 }
 
 // tracer is the global tracer used by the app.

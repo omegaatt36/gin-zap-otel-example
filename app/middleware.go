@@ -22,8 +22,13 @@ func GinLogger(logger *zap.Logger, tracer trace.Tracer, stack bool) gin.HandlerF
 		ctx := c.Request.Context()
 		requestCtx := &ctx
 		if tracer != nil {
+			ctxTracerInjected := tracing.NewContext(
+				tracing.HTTPExtract(*requestCtx, c.Request),
+				tracer,
+			)
+
 			ctxWithSpan, span := tracer.Start(
-				tracing.NewContext(*requestCtx, tracer),
+				ctxTracerInjected,
 				c.Request.URL.Path,
 			)
 			defer span.End()

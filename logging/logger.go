@@ -3,11 +3,16 @@ package logging
 
 import (
 	"context"
+	"log"
 	"os"
 
-	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+)
+
+var (
+	logger        *zap.Logger
+	traceInjector TraceInjector
 )
 
 // ctxKey is the type of value for the context key.
@@ -27,34 +32,16 @@ func FromContext(ctx context.Context) *zap.Logger {
 
 	logger := *c
 
-	// decuple with package tracing.
-	if traceID := trace.SpanFromContext(ctx).SpanContext().TraceID(); traceID.IsValid() {
-		logger = *logger.With(zap.String("trace-id", traceID.String()))
-	}
-
-	if spanID := trace.SpanFromContext(ctx).SpanContext().SpanID(); spanID.IsValid() {
-		logger = *logger.With(zap.String("span-id", spanID.String()))
+	if traceInjector != nil {
+		traceInjector.Inject(ctx, &logger)
 	}
 
 	return &logger
 }
 
-var logger *zap.Logger
-
 // Get returns the logger instance.
 func Get() *zap.Logger {
 	return logger
-}
-
-// ENUM(
-// Development = development
-// Production = production
-// )
-type Env string
-
-type Config struct {
-	Environment Env
-	Level       zapcore.Level
 }
 
 // Init initializes the logger.
@@ -65,7 +52,14 @@ func Init(cfg Config) {
 	if cfg.Environment == EnvProduction {
 		level = zapcore.InfoLevel
 		encoderConfig = zap.NewProductionEncoderConfig()
+		encoderConfig.MessageKey = "message"
+		encoderConfig.LevelKey = "severity"
 		encoder = zapcore.NewJSONEncoder(encoderConfig)
+	}
+
+	if cfg.TraceInjector != nil {
+		log.Println("aaaaaaa")
+		traceInjector = cfg.TraceInjector
 	}
 
 	if cfg.Level != level {

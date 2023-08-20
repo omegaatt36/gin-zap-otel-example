@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -41,10 +43,27 @@ func run3(ctx context.Context) {
 	logging.FromContext(ctx).Info("span test 3 repeates trace id from 2 with new span id")
 }
 
+type traceInjectorGCP struct {
+	projectID string
+}
+
+func (t traceInjectorGCP) Inject(ctx context.Context, l *zap.Logger) {
+	if traceID := trace.SpanFromContext(ctx).SpanContext().TraceID(); traceID.IsValid() {
+		traceToLog := fmt.Sprintf("projects/%s/traces/%s", t.projectID, traceID)
+		*l = *l.With(zap.String("logging.googleapis.com/trace", traceToLog))
+	}
+
+	if spanID := trace.SpanFromContext(ctx).SpanContext().SpanID(); spanID.IsValid() {
+		*l = *l.With(zap.String("logging.googleapis.com/spanId", spanID.String()))
+	}
+}
+
 func main() {
 	logging.Init(logging.Config{
 		Environment: logging.EnvDevelopment,
 		Level:       zap.DebugLevel,
+		// TraceInjector: logging.NewDefaultTraceInjector(),
+		TraceInjector: traceInjectorGCP{projectID: "test-project"},
 	})
 
 	// exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
